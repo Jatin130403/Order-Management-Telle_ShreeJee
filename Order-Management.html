@@ -4,7 +4,14 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Order Management — ShreeJee Ayucare</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com">
+// ✅ Fix: ensure filters trigger re-render correctly
+filterStatus.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterFrom.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterTo.addEventListener('change', ()=>renderOrders(searchInput.value));
+searchInput.addEventListener('input', ()=>renderOrders(searchInput.value));
+
+</script>
   <style>
     /* Background & glass look */
     body{
@@ -179,8 +186,22 @@
   <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded shadow hidden"></div>
 
   <!-- Firebase libs -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js">
+// ✅ Fix: ensure filters trigger re-render correctly
+filterStatus.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterFrom.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterTo.addEventListener('change', ()=>renderOrders(searchInput.value));
+searchInput.addEventListener('input', ()=>renderOrders(searchInput.value));
+
+</script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js">
+// ✅ Fix: ensure filters trigger re-render correctly
+filterStatus.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterFrom.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterTo.addEventListener('change', ()=>renderOrders(searchInput.value));
+searchInput.addEventListener('input', ()=>renderOrders(searchInput.value));
+
+</script>
 
   <script>
   /******** Firebase config (replace if needed) ********/
@@ -1096,9 +1117,23 @@ document.addEventListener('DOMContentLoaded', function(){
   })();
   // ---------- end RTO PINCODE AUTOFILL ----------
 
+
+// ✅ Fix: ensure filters trigger re-render correctly
+filterStatus.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterFrom.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterTo.addEventListener('change', ()=>renderOrders(searchInput.value));
+searchInput.addEventListener('input', ()=>renderOrders(searchInput.value));
+
 </script>
 <script>
 window.onload = function(){ showSection('myOrdersSection'); };
+
+// ✅ Fix: ensure filters trigger re-render correctly
+filterStatus.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterFrom.addEventListener('change', ()=>renderOrders(searchInput.value));
+filterTo.addEventListener('change', ()=>renderOrders(searchInput.value));
+searchInput.addEventListener('input', ()=>renderOrders(searchInput.value));
+
 </script>
 </body>
 </html>
