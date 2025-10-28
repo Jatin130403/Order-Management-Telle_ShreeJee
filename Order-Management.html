@@ -103,7 +103,7 @@
        Out of Delivery 
        <span id="oodBadge" class="ml-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">0</span>
       </button>
-        <button id="btnLogout" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-md font-semibold shadow text-white">Logout</button>
+        <button id="btnLogout" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-md font-semibold shadow text-white">Logout</button>
       </div>
     </div>
   </nav>
@@ -201,6 +201,12 @@
   }
   const db = firebase.database();
 
+
+  // Resilient global logout function (works even if other scripts error)
+  window.logout = function() {
+    try { localStorage.removeItem('currentTellicaller'); } catch(e) { /* ignore */ }
+    try { window.location.href = 'index.html'; } catch(e) { /* ignore */ }
+  };
   /******** App state & elements ********/
   const currentUser = JSON.parse(localStorage.getItem("currentTellicaller") || "{}");
   if (!currentUser.name) { window.location.href = "index.html"; } // protect
@@ -975,11 +981,16 @@
   filterTo.addEventListener('change', ()=> renderOrders(searchInput.value));
 
   /******** Logout ********/
-  btnLogout.addEventListener('click', ()=> {
+  document.addEventListener('DOMContentLoaded', function() {
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', ()=> {
     localStorage.removeItem('currentTellicaller');
     // optional: force navigation to login
     window.location.href = 'index.html';
-  });
+    });
+  }
+});
 
   
   // initial render (in case snapshots are loaded already)
