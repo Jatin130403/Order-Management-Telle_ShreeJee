@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>History — Your Delivered Orders</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: linear-gradient(120deg,#0f766e,#10b981); min-height:100vh; }
+    .glass { background: rgba(255,255,255,0.10); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.06); }
+    .count-bubble { background:#fef3c7; color:#92400e; border-radius:999px; padding:6px 10px; font-weight:700; }
+    .order-row:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(2,6,23,0.12); }
+    .small-muted{ color:rgba(255,255,255,0.85); font-size:0.9rem; }
+    input[type="date"], input[type="text"] { background: #ffffff; }
+    @media (min-width: 1024px) {
+      .nav-grid { display:grid; grid-template-columns: 1fr auto; gap:16px; align-items:center; }
+    }
+  </style>
+</head>
+<body class="font-sans text-white">
+
+  <nav class="p-4">
+    <div class="max-w-6xl mx-auto nav-grid glass rounded-xl p-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.jpg" alt="logo" class="h-10 w-10 rounded-full" onerror="this.style.display='none'">
+        <div>
+          <div class="font-bold text-lg">ShreeJee Ayucare — Your History</div>
+          <div id="telTopLabel" class="small-muted">—</div>
+        </div>
+      </div>
+
+      <div class="text-right small-muted">
+        <div>Delivered (unpaid) count</div>
+        <div id="deliveredCount" class="count-bubble inline-block mt-2">0</div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto p-6 space-y-6">
+
+    <!-- If not logged in, show message -->
+    <div id="notLogged" class="glass rounded-xl p-6 text-center hidden">
+      <p class="text-lg">You are not logged in as a tellicaller.</p>
+      <p class="small-muted">Please login (or set <code>localStorage.currentTellicaller</code>) to view your history.</p>
+      <p class="mt-4"><a href="Order-Management.html" class="bg-yellow-400 px-4 py-2 rounded text-black">Back</a></p>
+    </div>
+
+    <!-- Top controls -->
+    <section id="topControls" class="glass rounded-xl p-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-center">
+      <div>
+        <div class="text-sm small-muted">Showing history for</div>
+        <div id="telName" class="font-semibold text-lg mt-2"></div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div class="flex items-center gap-2">
+          <label class="small-muted text-sm">From</label>
+          <input id="fromDate" type="date" class="rounded p-2 text-black" />
+          <label class="small-muted text-sm">To</label>
+          <input id="toDate" type="date" class="rounded p-2 text-black" />
+        </div>
+        <div class="flex-1">
+          <input id="qSearch" placeholder="Search name / phone / order id" class="p-2 rounded text-black w-full" />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-4">
+        <label class="flex items-center gap-2 small-muted">
+          <input id="showPaidToggle" type="checkbox" class="rounded" />
+          <span>Show paid</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Orders list -->
+    <section id="listSection" class="space-y-4"></section>
+
+    <p id="noData" class="text-center small-muted">No delivered orders found for your account / range.</p>
+  </main>
+
+  <!-- firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <script>
+  /* === Firebase config (copy from your project) === */
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1wbJonjyJQDrPJWbMCVBtRolJH4HDskU",
+    authDomain: "shreejee-ayucare.firebaseapp.com",
+    databaseURL: "https://shreejee-ayucare-default-rtdb.firebaseio.com",
+    projectId: "shreejee-ayucare",
+    storageBucket: "shreejee-ayucare.firebasestorage.app",
+    messagingSenderId: "247248655859",
+    appId: "1:247248655859:web:b09bfc30ff6953aad42e86"
+  };
+  if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  /* === Elements === */
+  const notLogged = document.getElementById('notLogged');
+  const telName = document.getElementById('telName');
+  const telTopLabel = document.getElementById('telTopLabel');
+  const deliveredCountEl = document.getElementById('deliveredCount');
+  const fromDateEl = document.getElementById('fromDate');
+  const toDateEl = document.getElementById('toDate');
+  const listSection = document.getElementById('listSection');
+  const showPaidToggle = document.getElementById('showPaidToggle');
+  const qSearch = document.getElementById('qSearch');
+  const noData = document.getElementById('noData');
+
+  /* === App state === */
+  let ordersSnapshot = {};
+  // load tellicaller from localStorage like previous pages
+  const currentUser = JSON.parse(localStorage.getItem('currentTellicaller') || '{}');
+  const selectedTel = (currentUser && currentUser.name) ? currentUser.name : null;
+
+  /* === Helpers === */
+  function humanDate(ts){ return ts ? new Date(ts).toLocaleString() : ''; }
+  function dateStartOf(dStr){ return dStr ? new Date(dStr + 'T00:00:00').getTime() : null; }
+  function dateEndOf(dStr){ return dStr ? new Date(dStr + 'T23:59:59.999').getTime() : null; }
+
+  if (!selectedTel) {
+    // show message and hide controls
+    notLogged.classList.remove('hidden');
+    document.getElementById('topControls').style.display = 'none';
+  } else {
+    telName.textContent = selectedTel;
+    telTopLabel.textContent = selectedTel;
+  }
+
+  /* === Load orders from Firebase === */
+  const ordersRef = db.ref('oms_orders');
+  ordersRef.on('value', snap => {
+    ordersSnapshot = snap.val() || {};
+    render();
+  });
+
+  /* === Filters events === */
+  fromDateEl.addEventListener('change', render);
+  toDateEl.addEventListener('change', render);
+  showPaidToggle.addEventListener('change', render);
+  qSearch.addEventListener('input', render);
+
+  /* === Filtering logic (only for logged-in tellicaller) === */
+  function getFilteredDeliveredOrders(){
+    if (!selectedTel) return [];
+
+    const fromMs = dateStartOf(fromDateEl.value);
+    const toMs = dateEndOf(toDateEl.value);
+    const q = (qSearch.value || '').trim().toLowerCase();
+
+    const all = Object.entries(ordersSnapshot || {}).map(([id,o]) => ({ ...o, orderId: id }));
+    let list = all.filter(o => o && o.status === 'closed' && o.closedType === 'Delivered' && o.tellicaller === selectedTel);
+
+    if (fromMs) list = list.filter(o => (o.timestamp || 0) >= fromMs);
+    if (toMs) list = list.filter(o => (o.timestamp || 0) <= toMs);
+
+    if (q) {
+      list = list.filter(o => {
+        const name = ((o.firstName||'') + ' ' + (o.lastName||'')).toLowerCase();
+        return name.includes(q) || (o.phone||'').includes(q) || (o.orderId||'').toLowerCase().includes(q) || (o.externalOrderId||'').toLowerCase().includes(q);
+      });
+    }
+
+    if (!showPaidToggle.checked) list = list.filter(o => !o.paid);
+
+    list.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+    return list;
+  }
+
+  /* === Render === */
+  function render(){
+    if (!selectedTel) return; // nothing to show
+
+    const list = getFilteredDeliveredOrders();
+
+    // count unpaid for this tellicaller & date range
+    const unpaidCount = list.filter(o => !o.paid).length;
+    deliveredCountEl.textContent = unpaidCount;
+
+    listSection.innerHTML = '';
+    noData.style.display = list.length ? 'none' : 'block';
+
+    // group by date
+    const groups = {};
+    list.forEach(o => {
+      const key = new Date((o.timestamp||Date.now())).toDateString();
+      groups[key] = groups[key] || [];
+      groups[key].push(o);
+    });
+
+    Object.keys(groups).sort((a,b) => new Date(b) - new Date(a)).forEach(dateStr => {
+      const sec = document.createElement('div');
+      sec.className = 'glass rounded-xl p-4';
+      const h = document.createElement('h3');
+      h.className = 'font-semibold text-lg text-black mb-3';
+      h.textContent = dateStr;
+      sec.appendChild(h);
+
+      groups[dateStr].forEach(o => {
+        const row = document.createElement('div');
+        row.className = 'order-row bg-white/8 rounded p-3 flex items-center justify-between gap-4 mb-2';
+        row.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="font-semibold text-black truncate" style="min-width:160px">${(o.firstName||'')+' '+(o.lastName||'')}</div>
+            <div class="small-muted">${o.phone || ''}</div>
+            <div class="small-muted">₹ ${(parseFloat(o.amount)||0).toFixed(2)}</div>
+            <div class="small-muted">Status: ${o.paid ? 'Paid' : 'Unpaid'}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="small-muted text-right mr-2">${humanDate(o.timestamp)}</div>
+          </div>
+        `;
+        sec.appendChild(row);
+      });
+
+      listSection.appendChild(sec);
+    });
+  }
+
+  </script>
+</body>
+</html>
