@@ -27,17 +27,32 @@
     /* Product badges & card styles */
     .product-karela { background: linear-gradient(90deg,#ecfdf5,#ecfeff); border-left:4px solid #10b981; }
     .product-men { background: linear-gradient(90deg,#eef2ff,#f5f3ff); border-left:4px solid #7c3aed; }
-    .order-cancelled { background:#f3f4f6; border:2px solid #dc2626; } /* Grey fill + Red border */
+    .order-cancelled { background:#f3f4f6; border:2px solid #dc2626; }
 
     .product-pill { display:inline-flex; align-items:center; gap:8px; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:600; }
     .product-pill svg { width:18px; height:18px; }
 
+    /* Highlighting for RTO and Delivered orders */
+    .highlight-rto { border-left: 6px solid #ef4444 !important; background: rgba(254,202,202,0.10) !important; box-shadow: 0 6px 18px rgba(239,68,68,0.06); }
+    .highlight-delivered { border-left: 6px solid #10b981 !important; background: rgba(220,255,226,0.10) !important; box-shadow: 0 6px 18px rgba(16,185,129,0.06); }
+
+    /* Status icons */
+    .status-icon { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+    .status-icon.clickable { cursor:pointer; }
+    .status-icon-undispatched { background: #f0f0f0; border: 1px solid #cfcfcf; }
+    .status-icon-intransit { background: #2ecc71; }
+    .status-icon-delivered { background: #2ecc71; }
+    .status-icon-rto { background: #e74c3c; }
+
     /* small responsive tweaks */
     @media (max-width:640px){
       .w-40{ width:150px !important; }
+      .search-group { flex-direction: column; gap: 8px; }
+      .search-group input { width: 100% !important; }
+      .search-group select { width: 100% !important; }
     }
 
-    /* modal inner wrapper for relative positioning */
+    /* modal inner wrapper */
     .modal-inner { position: relative; }
     .modal-close-btn {
       position: absolute;
@@ -54,6 +69,11 @@
       cursor: pointer;
     }
 
+    /* Scroll fix for Order History */
+    #customerDetails {
+      max-height: 60vh;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body class="font-sans text-gray-800 min-h-screen">
@@ -71,7 +91,15 @@
       </div>
 
       <div id="navControls" class="flex flex-wrap items-center gap-3">
-        <input id="searchInput" type="search" placeholder="Search name or phone..." class="px-3 py-2 rounded-md border bg-white text-black w-64 shadow-sm" />
+        <!-- New Search Group: Dropdown + Input -->
+        <div class="search-group flex items-center gap-2">
+          <select id="searchType" class="px-3 py-2 rounded-md border bg-white text-black shadow-sm">
+            <option value="phone">Phone Number</option>
+            <option value="name">Customer Name</option>
+            <option value="orderId">Order ID</option>
+          </select>
+          <input id="searchInput" type="search" placeholder="Enter phone / name / order ID..." class="px-3 py-2 rounded-md border bg-white text-black w-64 shadow-sm" />
+        </div>
 
         <select id="filterStatus" class="px-2 py-2 rounded-md border bg-white text-black shadow-sm">
           <option value="all">All Status</option>
@@ -84,22 +112,19 @@
         <input id="filterTo" type="date" class="px-2 py-2 rounded-md border bg-white text-black shadow-sm" />
 
         <button id="btnAddOrder" class="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-md font-semibold shadow">+ Add Order</button>
-        <button id="btnSchedule" onclick="window.location.href='schedule.html'"
-       class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow">Schedule</button>
-        <button onclick="window.location.href='out_of_delivery.html'"
-       class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow flex items-center gap-2">
-       Out of Delivery 
-       <span id="oodBadge" class="ml-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">0</span>
-      </button>
+        <button onclick="window.location.href='schedule.html'" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow">Schedule</button>
+        <button onclick="window.location.href='out_of_delivery.html'" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow flex items-center gap-2">
+          Out of Delivery 
+          <span id="oodBadge" class="ml-1 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">0</span>
+        </button>
+        <button onclick="window.location.href='History.html'" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow flex items-center gap-2">
+          History
+        </button>
         <button id="btnLogout" onclick="logout()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-md font-semibold shadow text-white">Logout</button>
-      <button onclick="window.location.href='History.html'"
-       class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow flex items-center gap-2">
-       History
-      </button>
       </div>
     </div>
   </nav>
-<div id="headerSpacer" style="height:72px"></div>
+  <div id="headerSpacer" style="height:72px"></div>
 
   <!-- MAIN -->
   <main class="max-w-6xl mx-auto p-6">
@@ -112,7 +137,7 @@
     <div class="bg-white rounded-lg w-full max-w-2xl mx-4 shadow-lg p-6 modal-inner">
       <div class="flex justify-between items-center mb-4">
         <h3 id="modalTitle" class="text-lg font-semibold">Add Order</h3>
-        <button id="modalClose" class="modal-close-btn text-gray-600 hover:text-gray-900" aria-label="Close add order modal">✕</button>
+        <button id="modalClose" class="modal-close-btn text-gray-600 hover:text-gray-900" aria-label="Close">✕</button>
       </div>
 
       <form id="orderForm" class="space-y-3">
@@ -145,11 +170,10 @@
             <option value="dispatched">Dispatched</option>
           </select>
           <input id="scheduledDate" type="date" class="border p-2 rounded" title="Choose a date to schedule this order (defaults to today)" />
-          <!-- Product selector with small inline icons -->
           <select id="productSelect" class="border p-2 rounded">
             <option value="Karela Jamun Powder">🟢 Karela Jamun Powder</option>
             <option value="Men Wellness">🟣 Men Wellness</option>
-          </select><img id="productSelectIcon" src="product1.png" alt="product icon" class="inline-block w-12 h-12 ml-2 align-middle"/> 
+          </select>
         </div>
 
         <div class="flex justify-end gap-3 pt-2">
@@ -160,12 +184,12 @@
     </div>
   </div>
 
-  <!-- Customer Detail Modal (updated to include Reorder) -->
+  <!-- Customer Detail Modal -->
   <div id="customerBackdrop" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
     <div class="bg-white rounded-2xl w-full max-w-4xl mx-4 shadow-2xl p-6 glass-card modal-inner">
       <div class="flex justify-between items-center mb-4">
         <h3 id="custTitle" class="text-2xl font-bold text-green-800">Customer Details</h3>
-        <button id="custClose" class="modal-close-btn text-gray-600 hover:text-gray-900 text-xl" aria-label="Close customer details">✕</button>
+        <button id="custClose" class="modal-close-btn text-gray-600 hover:text-gray-900 text-xl" aria-label="Close">✕</button>
       </div>
 
       <div id="customerDetails" class="space-y-6"></div>
@@ -180,552 +204,546 @@
   <!-- Toast -->
   <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-2 rounded shadow hidden"></div>
 
-  <!-- Firebase libs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
   <script>
-  /******** Firebase config (replace if needed) ********/
-  const firebaseConfig = {
-    apiKey: "AIzaSyB1wbJonjyJQDrPJWbMCVBtRolJH4HDskU",
-    authDomain: "shreejee-ayucare.firebaseapp.com",
-    databaseURL: "https://shreejee-ayucare-default-rtdb.firebaseio.com",
-    projectId: "shreejee-ayucare",
-    storageBucket: "shreejee-ayucare.firebasestorage.app",
-    messagingSenderId: "247248655859",
-    appId: "1:247248655859:web:b09bfc30ff6953aad42e86"
-  };
-  if (!firebase.apps || !firebase.apps.length) {
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1wbJonjyJQDrPJWbMCVBtRolJH4HDskU",
+      authDomain: "shreejee-ayucare.firebaseapp.com",
+      databaseURL: "https://shreejee-ayucare-default-rtdb.firebaseio.com",
+      projectId: "shreejee-ayucare",
+      storageBucket: "shreejee-ayucare.firebasestorage.app",
+      messagingSenderId: "247248655859",
+      appId: "1:247248655859:web:b09bfc30ff6953aad42e86"
+    };
     firebase.initializeApp(firebaseConfig);
-  } else if (firebase.apps.length === 0) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  const db = firebase.database();
+    const db = firebase.database();
 
+    window.logout = function() {
+      localStorage.removeItem('currentTellicaller');
+      window.location.href = 'index.html';
+    };
 
-  // global logout function
-  window.logout = function() {
-    try { localStorage.removeItem('currentTellicaller'); } catch(e) {}
-    window.location.href = 'index.html';
-  };
+    const currentUser = JSON.parse(localStorage.getItem("currentTellicaller") || "{}");
+    document.getElementById("welcomeMsg").textContent = "Welcome " + (currentUser.name || "");
+    if (!currentUser.name) window.location.href = "index.html";
 
-  /******** App state & elements ********/
-  const currentUser = JSON.parse(localStorage.getItem("currentTellicaller") || "{}");
-  // show welcome message in nav
-  try{ const welcomeMsgEl = document.getElementById("welcomeMsg"); if (welcomeMsgEl) welcomeMsgEl.textContent = "Welcome " + (currentUser.name || ""); }catch(e){}
-  if (!currentUser.name) { window.location.href = "index.html"; }
+    const ordersRef = db.ref('oms_orders');
+    const customersRef = db.ref('oms_customers');
+    const scheduleRef = db.ref('oms_schedule');
 
-  const ordersRef = db.ref('oms_orders');
-  const customersRef = db.ref('oms_customers');
-  const scheduleRef = db.ref('oms_schedule');
+    let ordersSnapshot = {};
+    let customersSnapshot = {};
+    let scheduleSnapshot = {};
+    let currentViewedOrder = null;
 
-  let ordersSnapshot = {};
-  let customersSnapshot = {};
-  let scheduleSnapshot = {};
+    const ordersContainer = document.getElementById('ordersContainer');
+    const emptyMessage = document.getElementById('emptyMessage');
+    const searchInput = document.getElementById('searchInput');
+    const searchType = document.getElementById('searchType');
+    const btnAddOrder = document.getElementById('btnAddOrder');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalClose = document.getElementById('modalClose');
+    const orderForm = document.getElementById('orderForm');
+    const btnCancel = document.getElementById('btnCancel');
+    const toast = document.getElementById('toast');
 
-  const ordersContainer = document.getElementById('ordersContainer');
-  const emptyMessage = document.getElementById('emptyMessage');
-  const searchInput = document.getElementById('searchInput');
-  const btnAddOrder = document.getElementById('btnAddOrder');
-  const modalBackdrop = document.getElementById('modalBackdrop');
-  const modalClose = document.getElementById('modalClose');
-  const orderForm = document.getElementById('orderForm');
-  const btnCancel = document.getElementById('btnCancel');
-  const toast = document.getElementById('toast');
+    const customerBackdrop = document.getElementById('customerBackdrop');
+    const customerDetails = document.getElementById('customerDetails');
+    const custClose = document.getElementById('custClose');
+    const custClose2 = document.getElementById('custClose2');
 
-  const customerBackdrop = document.getElementById('customerBackdrop');
-  const custTitle = document.getElementById('custTitle');
-  const customerDetails = document.getElementById('customerDetails');
-  const custClose = document.getElementById('custClose');
-  const custClose2 = document.getElementById('custClose2');
-  const btnReorder = document.getElementById('btnReorder');
+    const filterStatus = document.getElementById('filterStatus');
+    const filterFrom = document.getElementById('filterFrom');
+    const filterTo = document.getElementById('filterTo');
 
-  const filterStatus = document.getElementById('filterStatus');
-  const filterFrom = document.getElementById('filterFrom');
-  const filterTo = document.getElementById('filterTo');
+    // Form fields
+    const fFirst = document.getElementById('firstName');
+    const fLast = document.getElementById('lastName');
+    const fPhone = document.getElementById('phone');
+    const fTellicaller = document.getElementById('tellicaller');
+    const fAddress = document.getElementById('address');
+    const fCity = document.getElementById('city');
+    const fState = document.getElementById('state');
+    const fPincode = document.getElementById('pincode');
+    const fAmount = document.getElementById('amount');
+    const fStatus = document.getElementById('statusSelect');
+    const fScheduledDate = document.getElementById('scheduledDate');
+    const fProduct = document.getElementById('productSelect');
+    const fPerPrice = document.getElementById('perPrice');
+    const fQuantity = document.getElementById('quantity');
 
-  // form fields
-  const fFirst = document.getElementById('firstName');
-  const fLast = document.getElementById('lastName');
-  const fPhone = document.getElementById('phone');
-  const fTellicaller = document.getElementById('tellicaller');
-  const fAddress = document.getElementById('address');
-  const fCity = document.getElementById('city');
-  const fState = document.getElementById('state');
-  const fPincode = document.getElementById('pincode');
-  const fAmount = document.getElementById('amount');
-  const fStatus = document.getElementById('statusSelect');
-  const fScheduledDate = document.getElementById('scheduledDate');
-  const fProduct = document.getElementById('productSelect');
+    function updateAmountFromInputs() {
+      const per = parseFloat(fPerPrice.value) || 0;
+      const qty = parseInt(fQuantity.value) || 1;
+      fAmount.value = (per * qty).toFixed(2);
+    }
+    fPerPrice.addEventListener('input', updateAmountFromInputs);
+    fQuantity.addEventListener('input', updateAmountFromInputs);
 
-  const fPerPrice = document.getElementById('perPrice');
-  const fQuantity = document.getElementById('quantity');
+    function showToast(msg, t=3000) {
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), t);
+    }
 
-  function updateAmountFromInputs() {
-    const per = parseFloat(fPerPrice.value) || 0;
-    const qty = parseInt(fQuantity.value) || 1;
-    const total = per * qty;
-    fAmount.value = total.toFixed(2);
-  }
-  if (fPerPrice) fPerPrice.addEventListener('input', updateAmountFromInputs);
-  if (fQuantity) fQuantity.addEventListener('input', updateAmountFromInputs);
-  try { updateAmountFromInputs(); } catch(e) {}
+    function humanDate(ts) { return new Date(ts).toLocaleString(); }
+    function generateOrderId() { return 'ord_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
-  function showToast(msg, t=3000){
-    toast.textContent = msg;
-    toast.classList.remove('hidden');
-    setTimeout(()=> toast.classList.add('hidden'), t);
-  }
-  function humanDate(ts){ return new Date(ts).toLocaleString(); }
-  function generateOrderId(){ return 'ord_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+    function updateOodBadge() {
+      const badge = document.getElementById('oodBadge');
+      if (!badge) return;
+      const count = Object.values(ordersSnapshot||{}).filter(o => 
+        o && o.oodStatus === 'today' && (!o.oodRemark || !['Agree','Not Picked','Refused'].includes(o.oodRemark))
+      ).length;
+      badge.textContent = count;
+    }
 
-  function updateOodBadge(){
-    const badge = document.getElementById('oodBadge');
-    if (!badge) return;
-    const count = Object.values(ordersSnapshot||{}).filter(o =>
-      o && o.oodStatus === 'today' && (!o.oodRemark || !['Agree','Not Picked','Refused'].includes(o.oodRemark))
-    ).length;
-    badge.textContent = count;
-  }
-
-  /******** Render Orders (grouped) with product awareness ********/
-  function renderOrders(filterText=''){
-    let list = Object.values(ordersSnapshot || {});
-    const q = filterText.trim().toLowerCase();
-    if (q) {
-      list = list.filter(o=>{
-        const nm = ((o.firstName||'') + ' ' + (o.lastName||'')).toLowerCase();
-        return nm.includes(q) || (o.phone||'').includes(q);
+    // Pincode auto-fill
+    if (fPincode) {
+      fPincode.addEventListener('input', () => {
+        const pin = fPincode.value.trim();
+        if (pin.length === 6) {
+          fetch(`https://api.postalpincode.in/pincode/${pin}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data[0]?.Status === 'Success') {
+                const po = data[0].PostOffice?.[0];
+                if (po) {
+                  fCity.value = po.District || '';
+                  fState.value = po.State || '';
+                }
+              }
+            })
+            .catch(err => console.error('Pincode fetch error', err));
+        }
       });
     }
 
-    // Tellecaller portal shows only currentUser's orders
-    list = list.filter(o => o.tellicaller === currentUser.name);
+    // FIXED renderOrders - Phone search now works reliably
+    function renderOrders() {
+      let list = Object.values(ordersSnapshot || {});
 
-    // status filter
-    if (filterStatus.value === 'delivered') {
-      list = list.filter(o => o.status === 'closed' && o.closedType === 'Delivered');
-    } else if (filterStatus.value === 'rto') {
-      list = list.filter(o => o.status === 'closed' && o.closedType === 'RTO');
-    } else if (filterStatus.value === 'cancelled') {
-      list = list.filter(o => o.status === 'cancelled' || (o.status==='closed' && o.closedType==='Cancelled'));
-    }
+      // FIRST: Only show orders belonging to the current tellicaller
+      list = list.filter(o => o.tellicaller === currentUser.name);
 
-    // date range
-    const fromVal = filterFrom.value ? new Date(filterFrom.value).setHours(0,0,0,0) : null;
-    const toVal = filterTo.value ? new Date(filterTo.value).setHours(23,59,59,999) : null;
-    if (fromVal || toVal) {
-      list = list.filter(o => (!fromVal || o.timestamp >= fromVal) && (!toVal || o.timestamp <= toVal));
-    }
+      const query = searchInput.value.trim();
+      const type = searchType.value;
 
-    if (!list.length) {
+      if (query) {
+        if (type === 'phone') {
+          // Robust phone search: remove non-digits and allow partial match
+          const cleanQuery = query.replace(/\D/g, '');
+          if (cleanQuery) {
+            list = list.filter(o => {
+              const cleanPhone = (o.phone || '').replace(/\D/g, '');
+              return cleanPhone.includes(cleanQuery);
+            });
+          }
+        } else if (type === 'name') {
+          const qLower = query.toLowerCase();
+          list = list.filter(o => {
+            const fullName = ((o.firstName || '') + ' ' + (o.lastName || '')).toLowerCase();
+            return fullName.includes(qLower);
+          });
+        } else if (type === 'orderId') {
+          const qLower = query.toLowerCase();
+          list = list.filter(o => {
+            return (o.orderId || '').toLowerCase().includes(qLower) ||
+                   (o.externalOrderId || '').toLowerCase().includes(qLower);
+          });
+        }
+      }
+
+      // Status filter
+      if (filterStatus.value === 'delivered') {
+        list = list.filter(o => o.status === 'closed' && o.closedType === 'Delivered');
+      } else if (filterStatus.value === 'rto') {
+        list = list.filter(o => o.status === 'closed' && o.closedType === 'RTO');
+      } else if (filterStatus.value === 'cancelled') {
+        list = list.filter(o => o.status === 'cancelled' || (o.status === 'closed' && o.closedType === 'Cancelled'));
+      }
+
+      // Date range filter
+      const fromVal = filterFrom.value ? new Date(filterFrom.value).setHours(0, 0, 0, 0) : null;
+      const toVal = filterTo.value ? new Date(filterTo.value).setHours(23, 59, 59, 999) : null;
+      if (fromVal || toVal) {
+        list = list.filter(o => (!fromVal || o.timestamp >= fromVal) && (!toVal || o.timestamp <= toVal));
+      }
+
+      if (!list.length) {
+        ordersContainer.innerHTML = '';
+        emptyMessage.classList.remove('hidden');
+        return;
+      }
+      emptyMessage.classList.add('hidden');
+
+      // Group by date
+      const groups = {};
+      list.forEach(o => {
+        const d = new Date(o.timestamp || Date.now());
+        const key = d.toLocaleDateString();
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(o);
+      });
+
       ordersContainer.innerHTML = '';
-      emptyMessage.classList.remove('hidden');
-      return;
-    }
-    emptyMessage.classList.add('hidden');
 
-    // group orders by calendar date
-    const groups = {};
-    list.forEach(o => {
-      const d = new Date(o.timestamp || Date.now());
-      const key = d.toLocaleDateString();
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(o);
-    });
+      function createSection(title, arr) {
+        if (!arr.length) return;
+        const sec = document.createElement('div');
+        sec.className = 'glass-card rounded-xl p-4';
+        const head = document.createElement('h3');
+        head.className = 'font-semibold text-lg mb-3 text-gray-800';
+        head.textContent = title;
+        sec.appendChild(head);
 
-    ordersContainer.innerHTML = '';
+        arr.sort((a, b) => b.timestamp - a.timestamp).forEach(order => {
+          const product = order.product || 'Karela Jamun Powder';
+          const row = document.createElement('div');
+          row.className = 'flex items-center justify-between p-3 rounded-md border mb-2 shadow-sm hover:shadow-lg transition';
+          if (order.status === 'cancelled' || order.closedType === 'Cancelled') {
+            row.classList.add('order-cancelled');
+          } else if (product === 'Men Wellness') {
+            row.classList.add('product-men');
+          } else {
+            row.classList.add('product-karela');
+          }
 
-    function createSection(title, arr) {
-      if (!arr.length) return;
-      const sec = document.createElement('div');
-      sec.className = 'glass-card rounded-xl p-4';
-      const head = document.createElement('h3');
-      head.className = 'font-semibold text-lg mb-3 text-gray-800';
-      head.textContent = title;
-      sec.appendChild(head);
+          const left = document.createElement('div');
+          left.className = 'flex items-center gap-3';
 
-      arr.sort((a,b)=>b.timestamp - a.timestamp).forEach(order => {
-        // normalize product for display (backcompat)
-        const product = order.product || 'Karela Jamun Powder';
-        const row = document.createElement('div');
-        // base classes + product-specific
-        row.className = 'flex items-center justify-between p-3 rounded-md border mb-2 shadow-sm hover:shadow-lg transition';
-        if (order.status === 'cancelled' || order.closedType === 'Cancelled') {
-          row.classList.add('order-cancelled');
-        } else if (product === 'Men Wellness') {
-          row.classList.add('product-men');
-        } else {
-          row.classList.add('product-karela');
-        }
+          const pill = document.createElement('div');
+          pill.className = 'product-pill';
+          pill.innerHTML = (product === 'Men Wellness' ?
+            `<img src='product2.png' alt='Men' class='w-8 h-8 rounded-sm inline-block mr-2'/> <span>Men Wellness</span>` :
+            `<img src='product1.png' alt='Karela' class='w-8 h-8 rounded-sm inline-block mr-2'/> <span>Karela Jamun Powder</span>`
+          );
+          left.appendChild(pill);
 
-        // LEFT: product pill + name+phone+time
-        const left = document.createElement('div');
-        left.className = 'flex items-center gap-3';
+          const meta = document.createElement('div');
+          meta.style.minWidth = '220px';
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'font-medium text-blue-700 hover:underline cursor-pointer';
+          nameDiv.textContent = (order.firstName || '') + ' ' + (order.lastName || '');
+          nameDiv.addEventListener('click', (ev) => { ev.stopPropagation(); openCustomerModal(order.phone, order.orderId); });
 
-        // product pill with inline svg icons (Ayurvedic bottle & shield)
-        const pill = document.createElement('div');
-        pill.className = 'product-pill';
-        pill.innerHTML = (product === 'Men Wellness' ? 
-          `<img src='product2.png' alt='Men' class='w-8 h- rounded-sm inline-block mr-2 align-middle'/> <span>Men Wellness</span>`
-          :
-          `<img src='product1.png' alt='Karela' class='w-8 h-8 rounded-sm inline-block mr-2 align-middle'/> <span>Karela Jamun Powder</span>`
-        );
-        left.appendChild(pill);
+          const phoneDiv = document.createElement('div');
+          phoneDiv.className = 'text-xs text-gray-500';
+          phoneDiv.textContent = order.phone + ' • ' + humanDate(order.timestamp || Date.now());
+          meta.appendChild(nameDiv);
+          meta.appendChild(phoneDiv);
+          left.appendChild(meta);
 
-        const meta = document.createElement('div');
-        meta.style.minWidth = '220px';
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'font-medium text-blue-700 hover:underline cursor-pointer';
-        nameDiv.textContent = (order.firstName||'') + ' ' + (order.lastName||'');
-        nameDiv.addEventListener('click', (ev)=>{ ev.stopPropagation(); openCustomerModal(order.phone, order.orderId); });
+          const middle = document.createElement('div');
+          middle.className = 'flex flex-col text-sm w-40';
+          middle.innerHTML = `
+            <span class="font-semibold">₹ ${Number(order.amount || 0).toFixed(2)}</span>
+            <span class="text-xs text-gray-600">By: ${order.tellicaller || '-'}</span>
+            <span class="text-xs text-gray-700">Product: ${product}</span>
+          `;
+          if (order.status === 'closed' || order.status === 'cancelled') {
+            middle.innerHTML += `<span class="text-xs text-gray-700">Status: ${order.status === 'cancelled' ? 'Cancelled' : (order.closedType || '-')}</span>`;
+          }
 
-        const phoneDiv = document.createElement('div');
-        phoneDiv.className = 'text-xs text-gray-500';
-        phoneDiv.textContent = order.phone + ' • ' + humanDate(order.timestamp || Date.now());
+          const right = document.createElement('div');
+          right.className = 'flex gap-2 items-center';
+          right.innerHTML = `
+            <div class="text-xs text-gray-600">${order.externalOrderId || 'Not Defined'}</div>
+            <button class="px-2 py-1 rounded bg-blue-600 text-white text-xs">View</button>
+          `;
+          right.querySelector('button').addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            openCustomerModal(order.phone, order.orderId);
+          });
 
-        meta.appendChild(nameDiv);
-        meta.appendChild(phoneDiv);
-        left.appendChild(meta);
+          row.appendChild(left);
+          row.appendChild(middle);
+          row.appendChild(right);
+          sec.appendChild(row);
+        });
 
-        // MIDDLE: aligned vertical block
-        const middle = document.createElement('div');
-        middle.className = 'flex flex-col text-sm w-40';
-        const amt = document.createElement('span'); amt.className = 'font-semibold'; amt.textContent = '₹ ' + (order.amount != null ? Number(order.amount).toFixed(2) : '0.00');
-        const tel = document.createElement('span'); tel.className = 'text-xs text-gray-600'; tel.textContent = 'By: ' + (order.tellicaller || '-');
-        middle.appendChild(amt);
-        middle.appendChild(tel);
-        // product name visible
-        const prodLine = document.createElement('span'); prodLine.className = 'text-xs text-gray-700'; prodLine.innerHTML = "Product: " + product;
-        middle.appendChild(prodLine);
-        if (order.status === 'closed' || order.status === 'cancelled') {
-          const st = document.createElement('span'); st.className = 'text-xs text-gray-700'; 
-          st.textContent = 'Status: ' + (order.status === 'cancelled' ? 'Cancelled' : (order.closedType || '-'));
-          middle.appendChild(st);
-        }
+        ordersContainer.appendChild(sec);
+      }
 
-        // RIGHT: orderId + view
-        const right = document.createElement('div');
-        right.className = 'flex gap-2 items-center';
-        const orderIdEl = document.createElement('div');
-        orderIdEl.className = 'text-xs text-gray-600';
-        orderIdEl.textContent = (order.externalOrderId && order.externalOrderId !== '') ? order.externalOrderId : 'Not Defined';
-        right.appendChild(orderIdEl);
-
-        const viewBtn = document.createElement('button');
-        viewBtn.className = 'px-2 py-1 rounded bg-blue-600 text-white text-xs';
-        viewBtn.textContent = 'View';
-        viewBtn.addEventListener('click', (ev) => { ev.stopPropagation(); openCustomerModal(order.phone, order.orderId); });
-        right.appendChild(viewBtn);
-
-        row.appendChild(left);
-        row.appendChild(middle);
-        row.appendChild(right);
-        sec.appendChild(row);
+      Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)).forEach(dateStr => {
+        createSection(dateStr, groups[dateStr]);
       });
-
-      ordersContainer.appendChild(sec);
     }
 
-    Object.keys(groups).sort((a,b)=> new Date(b) - new Date(a)).forEach(dateStr => {
-      createSection(dateStr, groups[dateStr]);
-    });
-  }
-
-  /******** Firebase listeners & backward compatibility ********/
-  ordersRef.on('value', snap => {
-    ordersSnapshot = snap.val() || {};
-    // normalize older orders that may be missing quantity/perPrice/product/cancelled (backwards-compat)
-    Object.keys(ordersSnapshot).forEach(k => {
-      const o = ordersSnapshot[k] || {};
-      if (!('quantity' in o)) o.quantity = 1;
-      if (!('perPrice' in o)) {
-        const q = o.quantity || 1;
-        o.perPrice = (o.amount && q ? parseFloat((o.amount / q).toFixed(2)) : 0);
-      }
-      // ensure amount is consistent with perPrice * quantity
-      o.amount = parseFloat(((o.perPrice || 0) * (o.quantity || 1)).toFixed(2));
-      // default product for older orders
-      if (!('product' in o) || !o.product) o.product = 'Karela Jamun Powder';
-      // ensure cancelled flag exists
-      if (!('cancelled' in o)) o.cancelled = false;
-      // handle legacy closedType 'Cancelled'
-      if (o.closedType === 'Cancelled') {
-        o.status = 'cancelled';
-        o.cancelled = true;
-      }
-      ordersSnapshot[k] = o;
+    // Firebase listeners
+    ordersRef.on('value', snap => {
+      ordersSnapshot = snap.val() || {};
+      Object.keys(ordersSnapshot).forEach(k => {
+        const o = ordersSnapshot[k];
+        if (!('quantity' in o)) o.quantity = 1;
+        if (!('perPrice' in o)) o.perPrice = o.amount && o.quantity ? parseFloat((o.amount / o.quantity).toFixed(2)) : 0;
+        o.amount = parseFloat(((o.perPrice || 0) * (o.quantity || 1)).toFixed(2));
+        if (!('product' in o)) o.product = 'Karela Jamun Powder';
+        if (!('cancelled' in o)) o.cancelled = false;
+        if (o.closedType === 'Cancelled') {
+          o.status = 'cancelled';
+          o.cancelled = true;
+        }
+        ordersSnapshot[k] = o;
+      });
+      renderOrders();
+      updateOodBadge();
     });
 
-    renderOrders(searchInput.value);
-    updateOodBadge();
-  });
+    customersRef.on('value', snap => { customersSnapshot = snap.val() || {}; });
+    scheduleRef.on('value', snap => { scheduleSnapshot = snap.val() || {}; });
 
-  customersRef.on('value', snap => {
-    customersSnapshot = snap.val() || {};
-  });
-  scheduleRef.on('value', snap => {
-    scheduleSnapshot = snap.val() || {};
-  });
-
-  /******** Scheduler (unchanged) ********/
-  function todayKeyString(d = new Date()) { return d.toISOString().split('T')[0]; }
-  async function processDueSchedulesFor(dateKey) {
-    try {
+    async function processDueSchedulesFor(dateKey) {
       const snap = await scheduleRef.child(dateKey).once('value');
       let data = snap.val() || {};
-      data = Object.fromEntries(Object.entries(data).filter(([_, o]) => (o.createdBy === currentUser.name)));
+      data = Object.fromEntries(Object.entries(data).filter(([_, o]) => o.createdBy === currentUser.name));
       const keys = Object.keys(data);
       if (!keys.length) return;
+
       for (const orderId of keys) {
         const scheduled = data[orderId];
-        if (ordersSnapshot && ordersSnapshot[scheduled.orderId]) {
+        if (ordersSnapshot[scheduled.orderId]) {
           await scheduleRef.child(dateKey).child(orderId).remove();
           continue;
         }
-        const orderPayload = Object.assign({}, scheduled);
-        if (!('quantity' in orderPayload)) orderPayload.quantity = 1;
-        if (!('perPrice' in orderPayload)) orderPayload.perPrice = orderPayload.amount ? parseFloat((orderPayload.amount / orderPayload.quantity).toFixed(2)) : 0;
-        // ensure product defaults
-        if (!('product' in orderPayload) || !orderPayload.product) orderPayload.product = 'Karela Jamun Powder';
-        orderPayload.timestamp = Date.now();
-        orderPayload.status = scheduled.status || 'open';
-        orderPayload.externalOrderId = scheduled.externalOrderId || '';
-        await ordersRef.child(scheduled.orderId).set(orderPayload);
-
-        // update/create customer node
-        const phoneKey = scheduled.phone;
-        const existing = customersSnapshot[phoneKey] || null;
-        if (existing) {
-          const ordersMap = existing.orders || {};
-          ordersMap[scheduled.orderId] = true;
-          const scheduledMap = existing.scheduledOrders || {};
-          if (scheduledMap[scheduled.orderId]) delete scheduledMap[scheduled.orderId];
-          const updateObj = { orders: ordersMap, scheduledOrders: scheduledMap, tellicallerLast: scheduled.tellicaller };
-          await customersRef.child(phoneKey).update(updateObj);
-        } else {
-          const newCust = {
-            firstName: scheduled.firstName || '',
-            lastName: scheduled.lastName || '',
-            phone: scheduled.phone || '',
-            address: scheduled.address || '',
-            city: scheduled.city || '',
-            state: scheduled.state || '',
-            pincode: scheduled.pincode || '',
-            tellicallerLast: scheduled.tellicaller || '',
-            createdAt: Date.now(),
-            orders: {}
-          };
-          newCust.orders[scheduled.orderId] = true;
-          await customersRef.child(phoneKey).set(newCust);
-        }
+        const payload = { ...scheduled, timestamp: Date.now(), status: scheduled.status || 'open' };
+        await ordersRef.child(scheduled.orderId).set(payload);
         await scheduleRef.child(dateKey).child(orderId).remove();
       }
-      showToast(`${keys.length} scheduled order(s) moved to live orders for ${dateKey}`, 4000);
-    } catch (err) {
-      console.error('Error processing scheduled orders for', dateKey, err);
+      showToast(`${keys.length} scheduled order(s) moved to live`, 4000);
     }
-  }
-  const todayKey = todayKeyString();
-  processDueSchedulesFor(todayKey).catch(()=>{});
-  scheduleRef.child(todayKey).on('value', snap=>{ if (snap.exists()) processDueSchedulesFor(todayKey).catch(()=>{}); });
+    const todayKey = new Date().toISOString().split('T')[0];
+    processDueSchedulesFor(todayKey);
 
-  /******** Add Order modal handling (now includes product) ********/
-  btnAddOrder.addEventListener('click', ()=>{
-    // sync small product icon beside select
-    try {
-      const psi = document.getElementById('productSelectIcon');
-      const psel = document.getElementById('productSelect');
-      function updateProductIcon(){ if(!psi || !psel) return; psi.src = (psel.value && psel.value.toLowerCase().includes('men')) ? 'product2.png' : 'product1.png'; }
-      updateProductIcon();
-      if (psel) psel.addEventListener('change', updateProductIcon);
-    } catch(e){}
+    // Add Order modal
+    btnAddOrder.addEventListener('click', () => {
+      orderForm.reset();
+      fTellicaller.value = currentUser.name;
+      document.getElementById('modalTitle').textContent = 'Add Order';
+      fStatus.value = 'open';
+      fScheduledDate.value = new Date().toISOString().split('T')[0];
+      fProduct.value = 'Karela Jamun Powder';
+      updateAmountFromInputs();
+      modalBackdrop.style.display = 'flex';
+      modalBackdrop.classList.remove('hidden');
+    });
 
-    orderForm.reset();
-    fTellicaller.value = currentUser.name || '';
-    document.getElementById('modalTitle').textContent = 'Add Order';
-    fStatus.value = 'open';
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      fScheduledDate.value = today;
-    } catch(e) { fScheduledDate.value = ''; }
-    // default product selection
-    try { document.getElementById('productSelect').value = 'Karela Jamun Powder'; } catch(e){}
-    modalBackdrop.style.display = 'flex';
-    modalBackdrop.classList.remove('hidden');
-  });
-  modalClose.addEventListener('click', ()=>{ modalBackdrop.style.display = 'none'; modalBackdrop.classList.add('hidden'); });
-  btnCancel.addEventListener('click', ()=>{ modalBackdrop.style.display = 'none'; modalBackdrop.classList.add('hidden'); });
+    modalClose.addEventListener('click', () => { modalBackdrop.style.display = 'none'; modalBackdrop.classList.add('hidden'); });
+    btnCancel.addEventListener('click', () => { modalBackdrop.style.display = 'none'; modalBackdrop.classList.add('hidden'); });
 
-  orderForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const firstName = fFirst.value.trim();
-    const lastName = fLast.value.trim();
-    const phone = fPhone.value.trim();
-    const tellicaller = fTellicaller.value.trim() || currentUser.name;
-    const address = fAddress.value.trim();
-    const city = fCity.value.trim();
-    const state = fState.value.trim();
-    const pincode = fPincode.value.trim();
-    const perPrice = parseFloat(fPerPrice.value) || 0;
-    const quantity = parseInt(fQuantity.value) || 1;
-    const amount = parseFloat((perPrice * quantity).toFixed(2)) || parseFloat(fAmount.value) || 0;
-    const status = fStatus.value || 'open';
-    const scheduledDate = fScheduledDate.value || '';
-    const product = fProduct.value || 'Karela Jamun Powder';
+    orderForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        orderId: generateOrderId(),
+        firstName: fFirst.value.trim(),
+        lastName: fLast.value.trim(),
+        phone: fPhone.value.trim(),
+        tellicaller: fTellicaller.value.trim() || currentUser.name,
+        address: fAddress.value.trim(),
+        city: fCity.value.trim(),
+        state: fState.value.trim(),
+        pincode: fPincode.value.trim(),
+        perPrice: parseFloat(fPerPrice.value) || 0,
+        quantity: parseInt(fQuantity.value) || 1,
+        amount: parseFloat(fAmount.value) || 0,
+        product: fProduct.value || 'Karela Jamun Powder',
+        status: fStatus.value || 'open',
+        timestamp: Date.now(),
+        externalOrderId: '',
+        cancelled: false
+      };
 
-    if (!firstName || !phone) {
-      alert('Please provide first name and phone.');
-      return;
-    }
+      if (!payload.firstName || !payload.phone) {
+        alert('First name and phone required.');
+        return;
+      }
 
-    // create a new order object and push
-    const orderId = generateOrderId();
-    const payload = {
-      orderId,
-      firstName, lastName, phone, tellicaller,
-      address, city, state, pincode,
-      perPrice, quantity, amount,
-      product, status,
-      timestamp: Date.now(),
-      externalOrderId: '',
-      cancelled: false
-    };
+      await ordersRef.child(payload.orderId).set(payload);
 
-    try {
-      await ordersRef.child(orderId).set(payload);
-
-      // Update / create customer
-      const phoneKey = phone;
-      const existing = customersSnapshot[phoneKey] || null;
+      const phoneKey = payload.phone;
+      const existing = customersSnapshot[phoneKey];
       if (existing) {
         const ordersMap = existing.orders || {};
-        ordersMap[orderId] = true;
-        await customersRef.child(phoneKey).update({ orders: ordersMap, tellicallerLast: tellicaller });
+        ordersMap[payload.orderId] = true;
+        await customersRef.child(phoneKey).update({ orders: ordersMap, tellicallerLast: payload.tellicaller });
       } else {
         const newCust = {
-          firstName, lastName, phone, address, city, state, pincode,
-          tellicallerLast: tellicaller, createdAt: Date.now(),
-          orders: {}
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          phone: payload.phone,
+          address: payload.address,
+          city: payload.city,
+          state: payload.state,
+          pincode: payload.pincode,
+          tellicallerLast: payload.tellicaller,
+          createdAt: Date.now(),
+          orders: { [payload.orderId]: true }
         };
-        newCust.orders[orderId] = true;
         await customersRef.child(phoneKey).set(newCust);
       }
 
       modalBackdrop.style.display = 'none';
       modalBackdrop.classList.add('hidden');
       showToast('Order saved');
-    } catch (err) {
-      console.error('Error saving order', err);
-      alert('Failed to save order. See console.');
+    });
+
+    // Customer modal
+    function openCustomerModal(phone, orderId) {
+      const o = ordersSnapshot[orderId];
+      if (!o) {
+        alert('Order data not found');
+        return;
+      }
+      currentViewedOrder = o;
+
+      let html = `
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div><strong>Name</strong><div>${o.firstName} ${o.lastName||''}</div></div>
+          <div><strong>Phone</strong><div>${o.phone}</div></div>
+          <div><strong>Address</strong><div>${o.address||'-'}</div></div>
+          <div><strong>City/State/Pin</strong><div>${o.city||'-'} / ${o.state||'-'} / ${o.pincode||'-'}</div></div>
+          <div><strong>Product</strong><div>${o.product}</div></div>
+          <div><strong>Amount</strong><div>₹ ${Number(o.amount||0).toFixed(2)}</div></div>
+        </div>
+        <h4 class="font-bold text-lg mb-3">Order History</h4>
+      `;
+
+      const histList = document.createElement('div');
+      histList.className = 'space-y-3';
+
+      const histOrders = Object.values(ordersSnapshot).filter(x => x.phone === phone);
+      histOrders.sort((a,b)=>b.timestamp-a.timestamp);
+
+      if (!histOrders.length) {
+        histList.innerHTML = '<p class="text-gray-500">No orders found for this customer.</p>';
+      } else {
+        histOrders.forEach(h => {
+          const prod = h.product || 'Karela Jamun Powder';
+          const wrap = document.createElement('div');
+          wrap.className = 'p-3 rounded-md border flex items-start gap-4 relative';
+          if (h.status === 'closed' && h.closedType === 'RTO') wrap.classList.add('highlight-rto');
+          if (h.status === 'closed' && h.closedType === 'Delivered') wrap.classList.add('highlight-delivered');
+          if (h.status === 'cancelled' || h.closedType === 'Cancelled') wrap.classList.add('order-cancelled');
+
+          const iconDiv = document.createElement('div');
+          iconDiv.className = 'status-icon';
+          if (h.status === 'closed' && h.closedType === 'Delivered') {
+            iconDiv.classList.add('status-icon-delivered');
+            iconDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
+          } else if (h.status === 'closed' && h.closedType === 'RTO') {
+            iconDiv.classList.add('status-icon-rto');
+            iconDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+          } else if (h.status === 'dispatched') {
+            iconDiv.classList.add('status-icon-intransit');
+            iconDiv.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+          } else {
+            iconDiv.classList.add('status-icon-undispatched');
+          }
+          wrap.appendChild(iconDiv);
+
+          const content = document.createElement('div');
+          content.className = 'flex-1';
+          content.innerHTML = `
+            <div class="font-medium">${h.firstName} ${h.lastName||''} • ${h.phone}</div>
+            <div class="text-sm text-gray-600">${prod} • ₹ ${Number(h.amount||0).toFixed(2)}</div>
+            <div class="text-xs text-gray-500">${humanDate(h.timestamp)}</div>
+            ${h.status === 'cancelled' ? `<div class="text-sm text-red-600 mt-1"><b>Cancelled:</b> ${h.cancelledReason || '-'}</div>` : ''}
+            ${h.closedType === 'RTO' ? `<div class="text-sm text-red-600 mt-1"><b>RTO Remark:</b> ${h.remark || '-'}</div>` : ''}
+          `;
+          wrap.appendChild(content);
+
+          if (h.status !== 'closed' && h.status !== 'cancelled' && h.tellicaller === currentUser.name) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel Order';
+            cancelBtn.className = 'px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700';
+            cancelBtn.onclick = (e) => {
+              e.stopPropagation();
+              const reason = prompt('Enter cancellation reason:');
+              if (reason === null) return;
+              if (reason.trim() === '') {
+                alert('Reason is required.');
+                return;
+              }
+
+              db.ref(`oms_orders/${h.orderId}`).update({
+                status: 'cancelled',
+                cancelled: true,
+                closedType: 'Cancelled',
+                cancelledReason: reason.trim(),
+                cancelledBy: currentUser.name,
+                cancelledAt: Date.now()
+              }).then(() => {
+                showToast('Order cancelled successfully');
+              }).catch(err => {
+                console.error(err);
+                alert('Failed to cancel order.');
+              });
+            };
+            wrap.appendChild(cancelBtn);
+          }
+
+          histList.appendChild(wrap);
+        });
+      }
+
+      customerDetails.innerHTML = html;
+      customerDetails.appendChild(histList);
+      customerBackdrop.style.display = 'flex';
+      customerBackdrop.classList.remove('hidden');
     }
-  });
 
-  /******** Customer modal + Reorder support ********/
-  // openCustomerModal: shows customer details and enables Reorder
-  let currentViewedOrderId = null;
-  function openCustomerModal(phone, orderId) {
-    currentViewedOrderId = orderId || null;
-    const order = (orderId && ordersSnapshot && ordersSnapshot[orderId]) ? ordersSnapshot[orderId] : null;
-    const cust = (phone && customersSnapshot && customersSnapshot[phone]) ? customersSnapshot[phone] : null;
-
-    // Build details HTML (keeps previous look & feel)
-    let html = '';
-    if (order) {
-      html += `<div class="grid grid-cols-2 gap-4">`;
-      html += `<div><strong>Name</strong><div>${(order.firstName||'') + ' ' + (order.lastName||'')}</div></div>`;
-      html += `<div><strong>Phone</strong><div>${order.phone}</div></div>`;
-      html += `<div><strong>Address</strong><div>${order.address || '-'}</div></div>`;
-      html += `<div><strong>City/State</strong><div>${(order.city||'-')} / ${(order.state||'-')}</div></div>`;
-      html += `<div><strong>Product</strong><div>${order.product || '-'}</div></div>`;
-      html += `<div><strong>Amount</strong><div>₹ ${Number(order.amount||0).toFixed(2)}</div></div>`;
-      html += `</div>`;
-      html += `<div class="mt-4"><strong>Order ID</strong><div>${order.orderId || '-'}</div></div>`;
-      html += `<div class="mt-2"><strong>Status</strong><div>${order.status || '-'}</div></div>`;
-    } else if (cust) {
-      html += `<div class="grid grid-cols-2 gap-4">`;
-      html += `<div><strong>Name</strong><div>${(cust.firstName||'') + ' ' + (cust.lastName||'')}</div></div>`;
-      html += `<div><strong>Phone</strong><div>${cust.phone}</div></div>`;
-      html += `<div><strong>Address</strong><div>${cust.address || '-'}</div></div>`;
-      html += `<div><strong>City/State</strong><div>${(cust.city||'-')} / ${(cust.state||'-')}</div></div>`;
-      html += `</div>`;
-    } else {
-      html = '<div>No details available.</div>';
-    }
-
-    customerDetails.innerHTML = html;
-    customerBackdrop.style.display = 'flex';
-    customerBackdrop.classList.remove('hidden');
-  }
-
-  // Close customer modal
-  [custClose, custClose2].forEach(el=>{
-    el && el.addEventListener('click', ()=>{
+    custClose.addEventListener('click', () => {
       customerBackdrop.style.display = 'none';
       customerBackdrop.classList.add('hidden');
-      currentViewedOrderId = null;
     });
-  });
+    custClose2.addEventListener('click', () => {
+      customerBackdrop.style.display = 'none';
+      customerBackdrop.classList.add('hidden');
+    });
 
-  // Reorder button behavior: prefill Add Order form and open modal
-  btnReorder.addEventListener('click', (ev) => {
-    ev.preventDefault();
-    // if no viewed order, try to use customer phone from displayed details (best-effort)
-    if (!currentViewedOrderId) {
-      alert('No order selected to reorder.');
-      return;
-    }
-    const srcOrder = ordersSnapshot[currentViewedOrderId];
-    if (!srcOrder) {
-      alert('Original order not found.');
-      return;
-    }
+    document.getElementById('btnReorder').addEventListener('click', () => {
+      if (!currentViewedOrder) {
+        alert('No order selected for reorder.');
+        return;
+      }
 
-    // pre-fill order form with data from srcOrder
-    try {
+      const o = currentViewedOrder;
+
       document.getElementById('modalTitle').textContent = 'Reorder';
-      fFirst.value = srcOrder.firstName || '';
-      fLast.value = srcOrder.lastName || '';
-      fPhone.value = srcOrder.phone || '';
-      fTellicaller.value = currentUser.name || ''; // ensure tellicaller is current logged-in tellecaller
-      fAddress.value = srcOrder.address || '';
-      fCity.value = srcOrder.city || '';
-      fState.value = srcOrder.state || '';
-      fPincode.value = srcOrder.pincode || '';
-      fPerPrice.value = (srcOrder.perPrice != null) ? srcOrder.perPrice : (srcOrder.amount && srcOrder.quantity ? (srcOrder.amount / srcOrder.quantity) : '');
-      fQuantity.value = srcOrder.quantity || 1;
+      fFirst.value = o.firstName || '';
+      fLast.value = o.lastName || '';
+      fPhone.value = o.phone || '';
+      fTellicaller.value = currentUser.name;
+      fAddress.value = o.address || '';
+      fCity.value = o.city || '';
+      fState.value = o.state || '';
+      fPincode.value = o.pincode || '';
+      fPerPrice.value = o.perPrice || '';
+      fQuantity.value = o.quantity || 1;
       updateAmountFromInputs();
-      // product & status & scheduledDate
-      try { document.getElementById('productSelect').value = srcOrder.product || 'Karela Jamun Powder'; } catch(e){}
+      fProduct.value = o.product === 'Men Wellness' ? 'Men Wellness' : 'Karela Jamun Powder';
       fStatus.value = 'open';
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        fScheduledDate.value = today;
-      } catch(e) { fScheduledDate.value = ''; }
+      fScheduledDate.value = new Date().toISOString().split('T')[0];
 
-      // Show Add Order modal
+      customerBackdrop.style.display = 'none';
+      customerBackdrop.classList.add('hidden');
       modalBackdrop.style.display = 'flex';
       modalBackdrop.classList.remove('hidden');
+    });
 
-      // Close customer modal
-      customerBackdrop.style.display = 'none';
-      customerBackdrop.classList.add('hidden');
+    // Re-render on any search change
+    searchInput.addEventListener('input', renderOrders);
+    searchType.addEventListener('change', renderOrders);
+    filterStatus.addEventListener('change', renderOrders);
+    filterFrom.addEventListener('change', renderOrders);
+    filterTo.addEventListener('change', renderOrders);
 
-    } catch (err) {
-      console.error('Error pre-filling reorder data', err);
-      alert('Failed to pre-fill reorder form.');
-    }
-  });
-
-  /******** Actions: close/cancel/save external id etc (kept minimal for tellecaller view) ********/
-  // (If you have admin-only functions in the admin file, they remain there — this file keeps the tellecaller-appropriate handlers.)
-
-  // Wire simple UI filters and search to re-render
-  searchInput.addEventListener('input', ()=> renderOrders(searchInput.value));
-  filterStatus.addEventListener('change', ()=> renderOrders(searchInput.value));
-  filterFrom.addEventListener('change', ()=> renderOrders(searchInput.value));
-  filterTo.addEventListener('change', ()=> renderOrders(searchInput.value));
-
+    // Initial render
+    renderOrders();
   </script>
 </body>
 </html>
